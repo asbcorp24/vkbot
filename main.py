@@ -5,13 +5,14 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import requests
 from datetime import datetime
+import re
 
 VK_TOKEN = "vk1.a.6XR1Ly_CiS3mmbmxf0KHW6sEF0EVJuuLUlXhL1G8CQb9sLlYbiCCIJa07r0ujtVdx2xen_Tv78E_rMB6VppJqJnjFAtaPgwxHl2j06kt3BHOokcjZAEE83aIJrdIgiubeSj6gzKRDJY0le3jsp5pVqAjsOcZd3uucFQg8YbJERGE1_WMIGO7dBlojQ2jjq15WWNF0FcPqJmbgSGSC2cdDg"
 
 user_survey_progress = {}  # Временное хранилище для анкет
 DB_FILE = "bot_buttons.db"
 
-# Вспомогательные функции
+# Функции для работы с базой данных
 def execute_query(query, args=(), fetchone=False, commit=False):
     """Работа с базой данных."""
     conn = sqlite3.connect(DB_FILE)
@@ -43,76 +44,68 @@ def save_survey_result(user_id, answers, survey_name, file_url=None):
         commit=True
     )
 
-# Загрузка документов
-def upload_document(vk, user_id, doc_path, doc_title="document"):
+# Проверка валидности ответа
+def validate_answer(answer, answer_type):
     """
-    Загружает документ (PDF) на сервер VK и возвращает идентификатор вложения.
+    Проверяет ответ пользователя в зависимости от ожидаемого типа.
     """
-    upload_url = vk.docs.getMessagesUploadServer(type="doc", peer_id=user_id)["upload_url"]
-    with open(doc_path, "rb") as file:
-        response = requests.post(upload_url, files={"file": file}).json()
-    document = vk.docs.save(file=response["file"], title=doc_title)["doc"]
-    return f"doc{document['owner_id']}_{document['id']}"
-
-def get_attachment_photo_url(vk, event):
-    """
-    Извлекает URL фото из вложений сообщения через messages.getById.
-    """
-    try:
-        message_id = event.message_id
-        message_data = vk.messages.getById(message_ids=message_id)["items"][0]
-        attachment = message_data["attachments"][0]
-        if attachment["type"] == "photo":
-            # Получаем URL самого крупного размера
-            photo_url = attachment["photo"]["sizes"][-1]["url"]
-            return photo_url
-    except Exception as e:
-        print(f"Ошибка получения фото: {e}")
-        return None
+    if answer_type == 1:  # Текст
+        return isinstance(answer, str) and len(answer) > 0
+    elif answer_type == 2:  # Дата (формат YYYY-MM-DD)
+        return bool(re.match(r"^\d{4}-\d{2}-\d{2}$", answer))
+    elif answer_type == 3:  # Число
+        return answer.isdigit()
+    elif answer_type == 4:  # Рисунок
+        return answer.startswith("photo")  # Проверяем формат ID фото
+    elif answer_type == 5:  # PDF
+        return answer.endswith(".pdf")  # Проверяем формат URL
+    return False
 
 # Обработка анкет
 def handle_survey_response(vk, user_id, survey, event):
     """
     Обрабатывает ответы пользователя в анкете.
-    Поддерживает текстовые ответы, фото и PDF.
+    Проверяет ответ в зависимости от типа вопроса.
     """
+    current_question = survey["questions"][survey["current_index"]]
+    question_text = current_question["text"]
+    answer_type = current_question["answer_type"]
+
     if event.attachments:
-        if "attach1_type" in event.attachments:
-            attachment_type = event.attachments["attach1_type"]
-
-            if attachment_type == "photo":
-                # Работа с фото
-                photo_url = get_attachment_photo_url(vk, event)
-                survey["answers"].append(photo_url)
-
-            elif attachment_type == "doc":
-                # Работа с документами (PDF)
-                message_id = event.message_id
-                message_data = vk.messages.getById(message_ids=message_id)["items"][0]
-                document = message_data["attachments"][0]["doc"]
-                if document["ext"] == "pdf":
-                    pdf_url = document["url"]
-                    survey["answers"].append(pdf_url)
-                else:
-                    vk.messages.send(user_id=user_id, message="Поддерживаются только PDF-документы.", random_id=0)
-                    return
+        if "photo"==event.attachments['attach1_type'] and answer_type == 4:
+            # Обработка фото
+            photo_id = event.attachments["photo"][0]
+            survey["answers"].append(photo_id)
+        elif "doc"==event.attachments['attach1_type'] and answer_type == 5:
+            # Обработка PDF
+            message_id = event.message_id
+            message_data = vk.messages.getById(message_ids=message_id)["items"][0]
+            document = message_data["attachments"][0]["doc"]
+            if document["ext"] == "pdf":
+                pdf_url = document["url"]
+                survey["answers"].append(pdf_url)
             else:
-                vk.messages.send(user_id=user_id, message="Поддерживаются только текстовые ответы, фото и PDF.", random_id=0)
+                vk.messages.send(user_id=user_id, message="Пожалуйста, загрузите корректный PDF-документ.", random_id=0)
                 return
         else:
-            vk.messages.send(user_id=user_id, message="Прикрепите файл или отправьте текстовый ответ.", random_id=0)
+            vk.messages.send(user_id=user_id, message="Неверный тип вложения.", random_id=0)
             return
     else:
-        # Обычный текстовый ответ
-        survey["answers"].append(event.text)
+        # Текстовые ответы
+        user_answer = event.text
+        if validate_answer(user_answer, answer_type):
+            survey["answers"].append(user_answer)
+        else:
+            vk.messages.send(user_id=user_id, message=f"Неверный формат ответа. Повторите вопрос: {question_text}", random_id=0)
+            return
 
     # Переход к следующему вопросу
     survey["current_index"] += 1
     if survey["current_index"] < len(survey["questions"]):
-        next_question = survey["questions"][survey["current_index"]]
+        next_question = survey["questions"][survey["current_index"]]["text"]
         vk.messages.send(user_id=user_id, message=next_question, random_id=0)
     else:
-        # Завершаем анкету
+        # Завершение анкеты
         save_survey_result(user_id, survey["answers"], survey["survey_name"])
         del user_survey_progress[user_id]
         vk.messages.send(user_id=user_id, message="Спасибо за ответы! Анкета завершена.", random_id=0)
@@ -130,23 +123,6 @@ def send_message_with_keyboard(vk, user_id, message, buttons):
         message=message,
         random_id=0,
         keyboard=keyboard.get_keyboard()
-    )
-
-def send_message_with_media(vk, user_id, message, media_path=None, media_type="photo"):
-    """
-    Отправляет сообщение с медиаматериалом (фото или PDF).
-    """
-    attachment = None
-    if media_path:
-        if media_type == "photo":
-            attachment = upload_photo(vk, user_id, media_path)
-        elif media_type == "document":
-            attachment = upload_document(vk, user_id, media_path, doc_title="document.pdf")
-    vk.messages.send(
-        user_id=user_id,
-        message=message,
-        random_id=0,
-        attachment=attachment
     )
 
 # Основная логика бота
@@ -175,14 +151,14 @@ def main():
 
                 if request_type == 1:  # Режим анкеты
                     questions = json.loads(dop)
-                    survey_name = questions[0]
+                    survey_name = questions[0]["text"]
                     user_survey_progress[user_id] = {
                         "questions": questions,
                         "current_index": 0,
                         "answers": [],
                         "survey_name": survey_name
                     }
-                    vk.messages.send(user_id=user_id, message=questions[0], random_id=0)
+                    vk.messages.send(user_id=user_id, message=questions[0]["text"], random_id=0)
                 else:
                     # Получаем кнопки
                     buttons = get_buttons_by_parent_id(response_id)
