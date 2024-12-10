@@ -6,17 +6,14 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import requests
 from datetime import datetime
 
-# Ваш токен VK API
 VK_TOKEN = "vk1.a.6XR1Ly_CiS3mmbmxf0KHW6sEF0EVJuuLUlXhL1G8CQb9sLlYbiCCIJa07r0ujtVdx2xen_Tv78E_rMB6VppJqJnjFAtaPgwxHl2j06kt3BHOokcjZAEE83aIJrdIgiubeSj6gzKRDJY0le3jsp5pVqAjsOcZd3uucFQg8YbJERGE1_WMIGO7dBlojQ2jjq15WWNF0FcPqJmbgSGSC2cdDg"
 
-# Временное хранилище для анкет
-user_survey_progress = {}
-
-# Файл базы данных
+user_survey_progress = {}  # Временное хранилище для анкет
 DB_FILE = "bot_buttons.db"
 
-# Вспомогательные функции для работы с базой данных
+# Вспомогательные функции
 def execute_query(query, args=(), fetchone=False, commit=False):
+    """Работа с базой данных."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute(query, args)
@@ -27,11 +24,11 @@ def execute_query(query, args=(), fetchone=False, commit=False):
     return data
 
 def get_buttons_by_parent_id(parent_id):
-    """Получает кнопки по родительскому ID."""
+    """Получение кнопок по родительскому ID."""
     return execute_query("SELECT id, question, request_type, dop, media_url FROM buttons WHERE parent_id = ?", (parent_id,))
 
 def get_response_by_text(user_text):
-    """Получает ответ по тексту кнопки."""
+    """Получение ответа по тексту кнопки."""
     return execute_query("SELECT id, response, request_type, dop, media_url FROM buttons WHERE question LIKE ?", (f"%{user_text}%",), fetchone=True)
 
 def save_survey_result(user_id, answers, survey_name, file_url=None):
@@ -46,26 +43,78 @@ def save_survey_result(user_id, answers, survey_name, file_url=None):
         commit=True
     )
 
-# Загрузка медиафайлов
-def upload_photo(vk, user_id, photo_path):
-    """Загружает фото на сервер VK и возвращает вложение."""
-    upload_url = vk.photos.getMessagesUploadServer()["upload_url"]
-    with open(photo_path, "rb") as file:
-        response = requests.post(upload_url, files={"photo": file}).json()
-    photo = vk.photos.saveMessagesPhoto(
-        photo=response["photo"],
-        server=response["server"],
-        hash=response["hash"]
-    )[0]
-    return f"photo{photo['owner_id']}_{photo['id']}"
+def get_photo_url(vk, photo_id):
+    """
+    Получает полный URL фото по его ID (photo<owner_id>_<photo_id>).
+    """
+    photo_info = vk.photos.getById(photos=photo_id)[0]
+    return photo_info["sizes"][-1]["url"]  # Берем URL самой крупной версии
 
-def upload_document(vk, user_id, doc_path, doc_title="document"):
-    """Загружает документ на сервер VK и возвращает вложение."""
-    upload_url = vk.docs.getMessagesUploadServer(type="doc", peer_id=user_id)["upload_url"]
-    with open(doc_path, "rb") as file:
-        response = requests.post(upload_url, files={"file": file}).json()
-    document = vk.docs.save(file=response["file"], title=doc_title)["doc"]
-    return f"doc{document['owner_id']}_{document['id']}"
+# Обработка анкет
+def debug_event(event):
+    """Выводит данные события для отладки."""
+    print(json.dumps(event.raw, indent=4, ensure_ascii=False))
+
+def get_attachment_photo_url(vk, event):
+    """
+    Извлекает URL фото из вложений сообщения через messages.getById.
+    """
+    try:
+        message_id = event.message_id
+        message_data = vk.messages.getById(message_ids=message_id)["items"][0]
+        attachment = message_data["attachments"][0]
+        if attachment["type"] == "photo":
+            # Получаем URL самого крупного размера
+            photo_url = attachment["photo"]["sizes"][-1]["url"]
+            return photo_url
+    except Exception as e:
+        print(f"Ошибка получения фото: {e}")
+        return None
+def handle_survey_response(vk, user_id, survey, event):
+    """
+    Обрабатывает ответы пользователя в анкете.
+    Если пользователь отправляет фото, сохраняется полный URL фото.
+    """
+    if event.attachments:
+        if "attach1_type" in event.attachments and event.attachments["attach1_type"] == "photo":
+            # Получаем ID фото
+            photo_url = get_attachment_photo_url(vk, event)
+
+            photo_id = f"photo{event.attachments['attach1']}"
+            photo_url = get_photo_url(vk, photo_id)  # Получаем URL фото
+            survey["answers"].append(photo_url)
+        else:
+            vk.messages.send(user_id=user_id, message="Поддерживаются только текстовые ответы и фото.", random_id=0)
+            return
+    else:
+        # Обычный текстовый ответ
+        survey["answers"].append(event.text)
+
+    # Переход к следующему вопросу
+    survey["current_index"] += 1
+    if survey["current_index"] < len(survey["questions"]):
+        next_question = survey["questions"][survey["current_index"]]
+        vk.messages.send(user_id=user_id, message=next_question, random_id=0)
+    else:
+        # Завершаем анкету
+        save_survey_result(user_id, survey["answers"], survey["survey_name"])
+        del user_survey_progress[user_id]
+        vk.messages.send(user_id=user_id, message="Спасибо за ответы! Анкета завершена.", random_id=0)
+
+# Отправка сообщений
+def send_message_with_keyboard(vk, user_id, message, buttons):
+    """Отправляет сообщение с кнопками."""
+    keyboard = VkKeyboard(one_time=True)
+    for i, (button_id, button_text, request_type, dop, media_url) in enumerate(buttons):
+        keyboard.add_button(button_text, color=VkKeyboardColor.PRIMARY)
+        if i < len(buttons) - 1:
+            keyboard.add_line()
+    vk.messages.send(
+        user_id=user_id,
+        message=message,
+        random_id=0,
+        keyboard=keyboard.get_keyboard()
+    )
 
 def send_message_with_media(vk, user_id, message, media_path=None, media_type="photo"):
     """Отправляет сообщение с медиаматериалом."""
@@ -82,21 +131,6 @@ def send_message_with_media(vk, user_id, message, media_path=None, media_type="p
         attachment=attachment
     )
 
-# Отправка сообщений с кнопками
-def send_message_with_keyboard(vk, user_id, message, buttons):
-    """Отправляет сообщение с кнопками."""
-    keyboard = VkKeyboard(one_time=True)
-    for i, (button_id, button_text, request_type, dop, media_url) in enumerate(buttons):
-        keyboard.add_button(button_text, color=VkKeyboardColor.PRIMARY)
-        if i < len(buttons) - 1:
-            keyboard.add_line()
-    vk.messages.send(
-        user_id=user_id,
-        message=message,
-        random_id=0,
-        keyboard=keyboard.get_keyboard()
-    )
-
 # Основная логика бота
 def main():
     vk_session = vk_api.VkApi(token=VK_TOKEN)
@@ -108,32 +142,19 @@ def main():
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             user_id = event.user_id
-            user_message = event.text   #.lower()
 
             # Если пользователь в процессе анкеты
             if user_id in user_survey_progress:
                 survey = user_survey_progress[user_id]
-                current_question = survey["questions"][survey["current_index"]]
-                survey["answers"].append(user_message)
-
-                # Переход к следующему вопросу
-                survey["current_index"] += 1
-                if survey["current_index"] < len(survey["questions"]):
-                    next_question = survey["questions"][survey["current_index"]]
-                    vk.messages.send(user_id=user_id, message=next_question, random_id=0)
-                else:
-                    # Завершение анкеты
-                    save_survey_result(user_id, survey["answers"], survey["survey_name"])
-                    del user_survey_progress[user_id]
-                    vk.messages.send(user_id=user_id, message="Спасибо за ответы! Анкета завершена.", random_id=0)
+                handle_survey_response(vk, user_id, survey, event)
                 continue
 
-            # Обработка кнопок и ответов
-            response = get_response_by_text(user_message)
+            # Обработка кнопок
+            response = get_response_by_text(event.text)
             if response:
                 response_id, response_text, request_type, dop, media_url = response
-                send_message_with_media(vk, user_id, response_text, media_path=media_url, media_type="photo" if media_url and media_url.endswith((".jpg", ".png")) else "document")
-                print(response_text);
+                vk.messages.send(user_id=user_id, message=response_text, random_id=0)
+
                 if request_type == 1:  # Режим анкеты
                     questions = json.loads(dop)
                     survey_name = questions[0]
@@ -152,7 +173,7 @@ def main():
                     else:
                         vk.messages.send(user_id=user_id, message="На этом всё!", random_id=0)
             else:
-                # Показать главное меню, если текст не распознан
+                # Показываем главное меню
                 buttons = get_buttons_by_parent_id(0)
                 send_message_with_keyboard(vk, user_id, "Я вас не понял. Вот главное меню:", buttons)
 
