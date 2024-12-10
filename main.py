@@ -43,17 +43,16 @@ def save_survey_result(user_id, answers, survey_name, file_url=None):
         commit=True
     )
 
-def get_photo_url(vk, photo_id):
+# Загрузка документов
+def upload_document(vk, user_id, doc_path, doc_title="document"):
     """
-    Получает полный URL фото по его ID (photo<owner_id>_<photo_id>).
+    Загружает документ (PDF) на сервер VK и возвращает идентификатор вложения.
     """
-    photo_info = vk.photos.getById(photos=photo_id)[0]
-    return photo_info["sizes"][-1]["url"]  # Берем URL самой крупной версии
-
-# Обработка анкет
-def debug_event(event):
-    """Выводит данные события для отладки."""
-    print(json.dumps(event.raw, indent=4, ensure_ascii=False))
+    upload_url = vk.docs.getMessagesUploadServer(type="doc", peer_id=user_id)["upload_url"]
+    with open(doc_path, "rb") as file:
+        response = requests.post(upload_url, files={"file": file}).json()
+    document = vk.docs.save(file=response["file"], title=doc_title)["doc"]
+    return f"doc{document['owner_id']}_{document['id']}"
 
 def get_attachment_photo_url(vk, event):
     """
@@ -70,21 +69,38 @@ def get_attachment_photo_url(vk, event):
     except Exception as e:
         print(f"Ошибка получения фото: {e}")
         return None
+
+# Обработка анкет
 def handle_survey_response(vk, user_id, survey, event):
     """
     Обрабатывает ответы пользователя в анкете.
-    Если пользователь отправляет фото, сохраняется полный URL фото.
+    Поддерживает текстовые ответы, фото и PDF.
     """
     if event.attachments:
-        if "attach1_type" in event.attachments and event.attachments["attach1_type"] == "photo":
-            # Получаем ID фото
-            photo_url = get_attachment_photo_url(vk, event)
+        if "attach1_type" in event.attachments:
+            attachment_type = event.attachments["attach1_type"]
 
-            photo_id = f"photo{event.attachments['attach1']}"
-            photo_url = get_photo_url(vk, photo_id)  # Получаем URL фото
-            survey["answers"].append(photo_url)
+            if attachment_type == "photo":
+                # Работа с фото
+                photo_url = get_attachment_photo_url(vk, event)
+                survey["answers"].append(photo_url)
+
+            elif attachment_type == "doc":
+                # Работа с документами (PDF)
+                message_id = event.message_id
+                message_data = vk.messages.getById(message_ids=message_id)["items"][0]
+                document = message_data["attachments"][0]["doc"]
+                if document["ext"] == "pdf":
+                    pdf_url = document["url"]
+                    survey["answers"].append(pdf_url)
+                else:
+                    vk.messages.send(user_id=user_id, message="Поддерживаются только PDF-документы.", random_id=0)
+                    return
+            else:
+                vk.messages.send(user_id=user_id, message="Поддерживаются только текстовые ответы, фото и PDF.", random_id=0)
+                return
         else:
-            vk.messages.send(user_id=user_id, message="Поддерживаются только текстовые ответы и фото.", random_id=0)
+            vk.messages.send(user_id=user_id, message="Прикрепите файл или отправьте текстовый ответ.", random_id=0)
             return
     else:
         # Обычный текстовый ответ
@@ -117,13 +133,15 @@ def send_message_with_keyboard(vk, user_id, message, buttons):
     )
 
 def send_message_with_media(vk, user_id, message, media_path=None, media_type="photo"):
-    """Отправляет сообщение с медиаматериалом."""
+    """
+    Отправляет сообщение с медиаматериалом (фото или PDF).
+    """
     attachment = None
     if media_path:
         if media_type == "photo":
             attachment = upload_photo(vk, user_id, media_path)
         elif media_type == "document":
-            attachment = upload_document(vk, user_id, media_path)
+            attachment = upload_document(vk, user_id, media_path, doc_title="document.pdf")
     vk.messages.send(
         user_id=user_id,
         message=message,
