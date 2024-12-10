@@ -82,10 +82,49 @@ def delete_button(button_id):
     return redirect(url_for("index"))
 
 # Просмотр результатов анкет
-@app.route("/results")
+@app.route("/results", methods=["GET"])
 def survey_results():
-    results = execute_query("SELECT id, user_id, answers, survey_name, created_at, file_url FROM survey_results")
-    return render_template("survey_results.html", results=results)
+    # Получение уникальных названий анкет
+    survey_names = [row[0] for row in execute_query("SELECT DISTINCT survey_name FROM survey_results")]
+
+    # Получение фильтров из параметров запроса
+    survey_name = request.args.get("survey_name", "").strip()
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+
+    # Базовый запрос
+    query = "SELECT id, user_id, answers, survey_name, created_at, file_url FROM survey_results WHERE 1=1"
+    params = []
+
+    # Добавление фильтра по названию анкеты
+    if survey_name:
+        query += " AND survey_name = ?"
+        params.append(survey_name)
+
+    # Добавление фильтра по дате начала
+    if start_date:
+        query += " AND created_at >= ?"
+        params.append(start_date)
+
+    # Добавление фильтра по дате окончания
+    if end_date:
+        query += " AND created_at <= ?"
+        params.append(end_date)
+
+    # Выполнение запроса
+    raw_results = execute_query(query, params)
+
+    # Парсим ответы из JSON
+    results = []
+    for row in raw_results:
+        try:
+            answers = json.loads(row[2]) if row[2] else []
+        except json.JSONDecodeError:
+            answers = []  # Если парсинг не удался
+        results.append((row[0], row[1], answers, row[3], row[4], row[5]))
+
+    return render_template("survey_results.html", results=results, survey_names=survey_names)
+
 
 # Запуск приложения
 if __name__ == "__main__":

@@ -23,6 +23,21 @@ def execute_query(query, args=(), fetchone=False, commit=False):
         conn.commit()
     conn.close()
     return data
+def get_attachment_photo_url(vk, event):
+    """
+    Извлекает URL фото из вложений сообщения через messages.getById.
+    """
+    try:
+        message_id = event.message_id
+        message_data = vk.messages.getById(message_ids=message_id)["items"][0]
+        attachment = message_data["attachments"][0]
+        if attachment["type"] == "photo":
+            # Получаем URL самого крупного размера
+            photo_url = attachment["photo"]["sizes"][-1]["url"]
+            return photo_url
+    except Exception as e:
+        print(f"Ошибка получения фото: {e}")
+        return None
 
 def get_buttons_by_parent_id(parent_id):
     """Получение кнопок по родительскому ID."""
@@ -33,7 +48,9 @@ def get_response_by_text(user_text):
     return execute_query("SELECT id, response, request_type, dop, media_url FROM buttons WHERE question LIKE ?", (f"%{user_text}%",), fetchone=True)
 
 def save_survey_result(user_id, answers, survey_name, file_url=None):
-    """Сохраняет результаты анкеты."""
+    """
+    Сохраняет результаты анкеты. Сохраняет вопросы и ответы в формате JSON.
+    """
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     execute_query(
         '''
@@ -43,7 +60,6 @@ def save_survey_result(user_id, answers, survey_name, file_url=None):
         (user_id, json.dumps(answers), file_url, survey_name, created_at),
         commit=True
     )
-
 # Проверка валидности ответа
 def validate_answer(answer, answer_type):
     """
@@ -72,18 +88,18 @@ def handle_survey_response(vk, user_id, survey, event):
     answer_type = current_question["answer_type"]
 
     if event.attachments:
-        if "photo"==event.attachments['attach1_type'] and answer_type == 4:
+        if "photo" == event.attachments.get('attach1_type') and answer_type == 4:
             # Обработка фото
-            photo_id = event.attachments["photo"][0]
-            survey["answers"].append(photo_id)
-        elif "doc"==event.attachments['attach1_type'] and answer_type == 5:
+            photo_url = get_attachment_photo_url(vk, event)
+            survey["answers"].append({"question": question_text, "answer": photo_url})
+        elif "doc" == event.attachments.get('attach1_type') and answer_type == 5:
             # Обработка PDF
             message_id = event.message_id
             message_data = vk.messages.getById(message_ids=message_id)["items"][0]
             document = message_data["attachments"][0]["doc"]
             if document["ext"] == "pdf":
                 pdf_url = document["url"]
-                survey["answers"].append(pdf_url)
+                survey["answers"].append({"question": question_text, "answer": pdf_url})
             else:
                 vk.messages.send(user_id=user_id, message="Пожалуйста, загрузите корректный PDF-документ.", random_id=0)
                 return
@@ -94,7 +110,7 @@ def handle_survey_response(vk, user_id, survey, event):
         # Текстовые ответы
         user_answer = event.text
         if validate_answer(user_answer, answer_type):
-            survey["answers"].append(user_answer)
+            survey["answers"].append({"question": question_text, "answer": user_answer})
         else:
             vk.messages.send(user_id=user_id, message=f"Неверный формат ответа. Повторите вопрос: {question_text}", random_id=0)
             return
@@ -109,7 +125,9 @@ def handle_survey_response(vk, user_id, survey, event):
         save_survey_result(user_id, survey["answers"], survey["survey_name"])
         del user_survey_progress[user_id]
         vk.messages.send(user_id=user_id, message="Спасибо за ответы! Анкета завершена.", random_id=0)
-
+# Переход на главное меню
+        buttons = get_buttons_by_parent_id(0)  # Главное меню
+        send_message_with_keyboard(vk, user_id, "Возвращаемся в главное меню:", buttons)
 # Отправка сообщений
 def send_message_with_keyboard(vk, user_id, message, buttons):
     """Отправляет сообщение с кнопками."""
@@ -166,6 +184,8 @@ def main():
                         send_message_with_keyboard(vk, user_id, "Выберите следующий шаг:", buttons)
                     else:
                         vk.messages.send(user_id=user_id, message="На этом всё!", random_id=0)
+                        buttons = get_buttons_by_parent_id(0)  # Главное меню
+                        send_message_with_keyboard(vk, user_id, "Возвращаемся в главное меню:", buttons)
             else:
                 # Показываем главное меню
                 buttons = get_buttons_by_parent_id(0)

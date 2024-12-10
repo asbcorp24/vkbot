@@ -1,41 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результаты анкет</title>
-</head>
-<body>
-    <h1>Результаты анкет</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Пользователь</th>
-                <th>Ответы</th>
-                <th>Название анкеты</th>
-                <th>Дата</th>
-                <th>Файл</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for result in results %}
-            <tr>
-                <td>{{ result[0] }}</td>
-                <td>{{ result[1] }}</td>
-                <td>{{ result[2] }}</td>
-                <td>{{ result[3] }}</td>
-                <td>{{ result[4] }}</td>
-                <td>
-                    {% if result[5] %}
-                    <a href="{{ result[5] }}">Скачать</a>
-                    {% else %}
-                    Нет
-                    {% endif %}
-                </td>
-            </tr>
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Результаты анкет</h1>
+
+<!-- Форма фильтрации -->
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label for="survey_name" class="form-label">Название анкеты</label>
+        <select id="survey_name" name="survey_name" class="form-select">
+            <option value="">Все</option>
+            {% for name in survey_names %}
+            <option value="{{ name }}" {% if name == request.args.get('survey_name', '') %}selected{% endif %}>{{ name }}</option>
             {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="start_date" class="form-label">Дата начала</label>
+        <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+    </div>
+    <div class="col-md-3">
+        <label for="end_date" class="form-label">Дата окончания</label>
+        <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">Фильтровать</button>
+    </div>
+</form>
+
+<!-- Таблица с результатами -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Пользователь</th>
+            <th>Вопросы и ответы</th>
+            <th>Название анкеты</th>
+            <th>Дата</th>
+            <th>Файл</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+        <tr>
+            <td>{{ result[0] }}</td>
+            <td>{{ result[1] }}</td>
+            <td>
+                <ul>
+                    {% for qa in result[2] %}
+                    <li>
+                        <strong>{{ qa.question }}</strong>:
+                        {% if qa.answer.startswith("photo") %}
+                        <img src="https://vk.com/{{ qa.answer }}" alt="Фото" style="max-width: 100px; max-height: 100px;">
+                        {% elif qa.answer.endswith(".pdf") %}
+                        <a href="{{ qa.answer }}" target="_blank">Скачать документ</a>
+                        {% else %}
+                        {{ qa.answer }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </td>
+            <td>{{ result[3] }}</td>
+            <td>{{ result[4] }}</td>
+            <td>
+                {% if result[5] %}
+                <a href="{{ result[5] }}" class="btn btn-sm btn-secondary">Скачать</a>
+                {% else %}
+                Нет
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

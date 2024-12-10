@@ -1,43 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель: Кнопки</title>
-</head>
-<body>
-    <h1>Список кнопок</h1>
-    <a href="/add">Добавить новую кнопку</a>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Вопрос</th>
-                <th>Ответ</th>
-                <th>Родительский ID</th>
-                <th>Тип</th>
-                <th>Доп. данные</th>
-                <th>Медиа</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for button in buttons %}
-            <tr>
-                <td>{{ button[0] }}</td>
-                <td>{{ button[1] }}</td>
-                <td>{{ button[2] }}</td>
-                <td>{{ button[3] }}</td>
-                <td>{{ button[4] }}</td>
-                <td>{{ button[5] }}</td>
-                <td>{{ button[6] }}</td>
-                <td>
-                    <a href="/edit/{{ button[0] }}">Редактировать</a>
-                    <a href="/delete/{{ button[0] }}">Удалить</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Список кнопок</h1>
+<a href="/add" class="btn btn-primary mb-3">Добавить новую кнопку</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Вопрос</th>
+            <th>Ответ</th>
+            <th>Родительский ID</th>
+            <th>Тип</th>
+            <th>Доп. данные</th>
+            <th>Медиа</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for button in buttons %}
+        <tr>
+            <td>{{ button[0] }}</td>
+            <td>{{ button[1] }}</td>
+            <td>{{ button[2] }}</td>
+            <td>{{ button[3] }}</td>
+            <td>{{ button[4] }}</td>
+            <td>{{ button[5] }}</td>
+            <td>{{ button[6] }}</td>
+            <td>
+                <a href="/edit/{{ button[0] }}" class="btn btn-sm btn-warning">Редактировать</a>
+                <a href="/delete/{{ button[0] }}" class="btn btn-sm btn-danger">Удалить</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
