@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактировать кнопку</title>
+</head>
+<body>
+    <h1>Редактировать кнопку</h1>
+    <form method="post">
+        <label>Вопрос:</label>
+        <input type="text" name="question" value="{{ button[1] }}" required><br>
+        <label>Ответ:</label>
+        <textarea name="response" required>{{ button[2] }}</textarea><br>
+        <label>Родительский ID:</label>
+        <input type="number" name="parent_id" value="{{ button[3] }}"><br>
+        <label>Тип запроса:</label>
+        <select name="request_type">
+            <option value="0" {% if button[4] == 0 %}selected{% endif %}>Стандартный</option>
+            <option value="1" {% if button[4] == 1 %}selected{% endif %}>Анкета</option>
+        </select><br>
+        <label>Доп. данные (JSON):</label>
+        <textarea name="dop">{{ button[5] }}</textarea><br>
+        <label>Ссылка на медиа:</label>
+        <input type="text" name="media_url" value="{{ button[6] }}"><br>
+        <button type="submit">Сохранить</button>
+    </form>
+</body>
+</html>

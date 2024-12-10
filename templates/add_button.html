@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить кнопку</title>
+</head>
+<body>
+    <h1>Добавить новую кнопку</h1>
+    <form method="post">
+        <label>Вопрос:</label>
+        <input type="text" name="question" required><br>
+
+        <label>Ответ:</label>
+        <textarea name="response" required></textarea><br>
+
+        <label>Родительский ID:</label>
+        <select name="parent_id">
+            <option value="0">Главное меню</option>
+            {% for button in buttons %}
+            <option value="{{ button[0] }}">{{ button[1] }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label>Тип запроса:</label>
+        <select name="request_type">
+            <option value="0">Стандартный</option>
+            <option value="1">Анкета</option>
+        </select><br>
+
+        <label>Доп. данные (JSON):</label>
+        <textarea name="dop"></textarea><br>
+
+        <label>Ссылка на медиа:</label>
+        <input type="text" name="media_url"><br>
+
+        <button type="submit">Сохранить</button>
+    </form>
+</body>
+</html>
