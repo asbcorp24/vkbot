@@ -44,27 +44,22 @@
         <tr>
             <td>{{ result[0] }}</td>
             <td>{{ result[1] }}</td>
-           <td>
-    <ul>
-        {% for qa in result[2] %}
-        <li>
-            {% if qa is mapping %}
-            <strong>{{ qa.question }}</strong>:
-            {% if   (qa.answer.endswith(".jpg") or qa.answer.endswith(".jpeg") or qa.answer.endswith(".png") or qa.answer.endswith(".gif")) %}
-            <img src="{{ qa.answer }}" alt="Фото" style="max-width: 100px; max-height: 100px;">
-            {% elif qa.answer.endswith(".pdf") %}
-            <a href="{{ qa.answer }}" target="_blank">Скачать документ</a>
-            {% else %}
-            {{ qa.answer }}
-            {% endif %}
-            {% else %}
-            {{ qa }}
-            {% endif %}
-        </li>
-        {% endfor %}
-    </ul>
-</td>
-
+            <td>
+                <ul>
+                    {% for qa in result[2] %}
+                    <li>
+                        <strong>{{ qa.question }}</strong>:
+                        {% if qa.answer.endswith(".jpg") or qa.answer.endswith(".jpeg") or qa.answer.endswith(".png") or qa.answer.endswith(".gif") %}
+                        <img src="{{ qa.answer }}" alt="Фото" style="max-width: 100px; max-height: 100px;">
+                        {% elif qa.answer.endswith(".pdf") %}
+                        <a href="{{ qa.answer }}" target="_blank">Скачать документ</a>
+                        {% else %}
+                        {{ qa.answer }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </td>
             <td>{{ result[3] }}</td>
             <td>{{ result[4] }}</td>
             <td>
@@ -83,4 +78,21 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Навигация по страницам -->
+<nav aria-label="Pagination">
+    <ul class="pagination">
+        <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ current_page - 1 }}{% if survey_name %}&survey_name={{ survey_name }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Предыдущая</a>
+        </li>
+        {% for page in range(1, total_pages + 1) %}
+        <li class="page-item {% if page == current_page %}active{% endif %}">
+            <a class="page-link" href="?page={{ page }}{% if survey_name %}&survey_name={{ survey_name }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">{{ page }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ current_page + 1 }}{% if survey_name %}&survey_name={{ survey_name }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Следующая</a>
+        </li>
+    </ul>
+</nav>
 {% endblock %}

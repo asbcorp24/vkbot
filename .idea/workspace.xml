@@ -4,22 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="09fac95f-f90c-4559-a4d1-5f90e846f3ed" name="Changes" comment="4">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/No20687213____.__.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/f25decf5-3ef1-499e-8ecd-1d0f067ca5ee.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/03456e17-2ba8-4ba6-91f2-13724ecf2632.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/14729d15-880b-40e6-b558-65943a7fe4f3.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/16a3d0ec-05ff-484c-9f72-310a880864a8.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/819b0c0a-efe6-464c-bdb9-caa66815ddb8.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/8dd7049f-5517-45f3-b07d-f518424b8b17.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/9af144b7-b8c3-4cd6-b096-47ea338efeb9.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/user/a4145afa-2147-4433-99d9-2f12277fa9db.pdf" afterDir="false" />
+    <list default="true" id="09fac95f-f90c-4559-a4d1-5f90e846f3ed" name="Changes" comment="5">
       <change afterPath="$PROJECT_DIR$/uploads/вава" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/adm.py" beforeDir="false" afterPath="$PROJECT_DIR$/adm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot_buttons.db" beforeDir="false" afterPath="$PROJECT_DIR$/bot_buttons.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/survey_results.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/survey_results.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -50,19 +38,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Python.adm.executor": "Run",
-    "Python.cbd.executor": "Run",
-    "Python.main.executor": "Debug",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "build.tools"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Python.adm.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cbd.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;build.tools&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.adm">
     <configuration name="adm" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="vkbot" />
@@ -199,7 +187,15 @@
       <option name="project" value="LOCAL" />
       <updated>1733983983631</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="5">
+      <option name="closed" value="true" />
+      <created>1734010756376</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1734010756376</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -217,7 +213,8 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="первый подход" />
     <MESSAGE value="4" />
-    <option name="LAST_COMMIT_MESSAGE" value="4" />
+    <MESSAGE value="5" />
+    <option name="LAST_COMMIT_MESSAGE" value="5" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
