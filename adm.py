@@ -2,9 +2,19 @@ from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 import json
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
 
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+
+
+# Проверка разрешённого расширения файла
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 app = Flask(__name__)
-
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 DB_FILE = "bot_buttons.db"
 
 # Вспомогательные функции
@@ -34,7 +44,15 @@ def add_button():
         parent_id = int(request.form["parent_id"])
         request_type = int(request.form["request_type"])
         dop = request.form["dop"] if request.form["dop"] else None
-        media_url = request.form["media_url"] if request.form["media_url"] else None
+        media_url = None
+
+        # Обработка файла
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                media_url = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
         execute_query(
             '''
@@ -59,7 +77,15 @@ def edit_button(button_id):
         parent_id = int(request.form["parent_id"])
         request_type = int(request.form["request_type"])
         dop = request.form["dop"] if request.form["dop"] else None
-        media_url = request.form["media_url"] if request.form["media_url"] else None
+        media_url = request.form["media_url"]
+
+        # Обработка нового файла
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                media_url = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
         execute_query(
             '''
@@ -128,4 +154,6 @@ def survey_results():
 
 # Запуск приложения
 if __name__ == "__main__":
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)

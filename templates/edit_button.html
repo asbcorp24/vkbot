@@ -1,29 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактировать кнопку</title>
-</head>
-<body>
-    <h1>Редактировать кнопку</h1>
-    <form method="post">
-        <label>Вопрос:</label>
-        <input type="text" name="question" value="{{ button[1] }}" required><br>
-        <label>Ответ:</label>
-        <textarea name="response" required>{{ button[2] }}</textarea><br>
-        <label>Родительский ID:</label>
-        <input type="number" name="parent_id" value="{{ button[3] }}"><br>
-        <label>Тип запроса:</label>
-        <select name="request_type">
-            <option value="0" {% if button[4] == 0 %}selected{% endif %}>Стандартный</option>
-            <option value="1" {% if button[4] == 1 %}selected{% endif %}>Анкета</option>
-        </select><br>
-        <label>Доп. данные (JSON):</label>
-        <textarea name="dop">{{ button[5] }}</textarea><br>
-        <label>Ссылка на медиа:</label>
-        <input type="text" name="media_url" value="{{ button[6] }}"><br>
-        <button type="submit">Сохранить</button>
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4 text-center">Редактировать кнопку</h1>
+<div class="container">
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label for="question" class="form-label">Вопрос:</label>
+            <input type="text" class="form-control" id="question" name="question" value="{{ button[1] }}" required>
+            <div class="invalid-feedback">
+                Пожалуйста, введите текст вопроса.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="response" class="form-label">Ответ:</label>
+            <textarea class="form-control" id="response" name="response" required>{{ button[2] }}</textarea>
+            <div class="invalid-feedback">
+                Пожалуйста, введите текст ответа.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="parent_id" class="form-label">Родительский ID:</label>
+            <input type="number" class="form-control" id="parent_id" name="parent_id" value="{{ button[3] }}">
+        </div>
+        <div class="mb-3">
+            <label for="request_type" class="form-label">Тип запроса:</label>
+            <select class="form-select" id="request_type" name="request_type">
+                <option value="0" {% if button[4] == 0 %}selected{% endif %}>Стандартный</option>
+                <option value="1" {% if button[4] == 1 %}selected{% endif %}>Анкета</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="dop" class="form-label">Дополнительные данные (JSON):</label>
+            <textarea class="form-control" id="dop" name="dop">{{ button[5] }}</textarea>
+            <div class="form-text">
+                Введите данные в формате JSON, если это необходимо.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="media_url" class="form-label">Ссылка на медиа:</label>
+            <input type="text" class="form-control" id="media_url" name="media_url" value="{{ button[6] }}">
+        </div>
+        <div class="mb-3">
+            <label for="file" class="form-label">Загрузить файл:</label>
+            <input type="file" class="form-control" id="file" name="file">
+            <div class="form-text">
+                Вы можете загрузить файл (например, изображение или PDF).
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Сохранить</button>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}
+
+
