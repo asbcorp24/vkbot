@@ -28,6 +28,12 @@
                      <li class="nav-item">
                         <a class="nav-link" href="/logout">Выход</a>
                     </li>
+                      {% if session['username'] == SUPERADMIN_USERNAME %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/manage_users">Управление пользователями</a>
+                    </li>
+                    {% endif %}
+
                 </ul>
             </div>
         </div>
