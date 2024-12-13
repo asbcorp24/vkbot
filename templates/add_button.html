@@ -40,6 +40,27 @@
                 Введите данные в формате JSON, если это необходимо.
             </div>
         </div>
+        <div id="json-builder" class="mb-3">
+            <h5>Создание JSON массива</h5>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" id="element-text" class="form-control" placeholder="Текст вопроса">
+                </div>
+                <div class="col-md-4">
+                    <select id="element-type" class="form-select">
+                        <option value="1">Текст</option>
+                        <option value="2">Дата</option>
+                        <option value="3">Число</option>
+                        <option value="4">Изображение</option>
+                        <option value="5">PDF</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" id="add-element" class="btn btn-primary mt-3">Добавить элемент</button>
+            <ul id="json-preview" class="mt-3 list-group">
+                <!-- Предпросмотр JSON элементов -->
+            </ul>
+        </div>
         <div class="mb-3">
             <label for="file" class="form-label">Загрузить файл:</label>
             <input type="file" class="form-control" id="file" name="file">
@@ -51,6 +72,7 @@
     </form>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     // Включение валидации Bootstrap
     (function () {
@@ -66,5 +88,63 @@
             }, false)
         })
     })()
+
+    // JSON Builder logic
+    $(document).ready(function () {
+        const $dop = $('#dop');
+        const $jsonPreview = $('#json-preview');
+        let jsonArray = [];
+
+        function refreshPreview() {
+            $jsonPreview.empty();
+            jsonArray.forEach((element, index) => {
+                const listItem = `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${element.text} (Тип: ${element.answer_type})
+                    <div>
+                        <button class="btn btn-sm btn-warning edit-element" data-index="${index}">Редактировать</button>
+                        <button class="btn btn-sm btn-danger delete-element" data-index="${index}">Удалить</button>
+                    </div>
+                </li>`;
+                $jsonPreview.append(listItem);
+            });
+            $dop.val(JSON.stringify(jsonArray, null, 2));
+        }
+
+        $('#add-element').click(function () {
+            const text = $('#element-text').val().trim();
+            const answerType = parseInt($('#element-type').val(), 10);
+
+            if (!text) {
+                alert('Введите текст вопроса.');
+                return;
+            }
+
+            const newElement = { text: text, answer_type: answerType };
+            jsonArray.push(newElement);
+            refreshPreview();
+
+            // Очистить поля ввода
+            $('#element-text').val('');
+            $('#element-type').val('1');
+        });
+
+        $jsonPreview.on('click', '.delete-element', function () {
+            const index = $(this).data('index');
+            jsonArray.splice(index, 1);
+            refreshPreview();
+        });
+
+        $jsonPreview.on('click', '.edit-element', function () {
+            const index = $(this).data('index');
+            const element = jsonArray[index];
+
+            $('#element-text').val(element.text);
+            $('#element-type').val(element.answer_type);
+
+            jsonArray.splice(index, 1);
+            refreshPreview();
+        });
+    });
 </script>
 {% endblock %}

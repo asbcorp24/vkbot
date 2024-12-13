@@ -4,11 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="09fac95f-f90c-4559-a4d1-5f90e846f3ed" name="Changes" comment="5">
-      <change afterPath="$PROJECT_DIR$/uploads/вава" afterDir="false" />
+    <list default="true" id="09fac95f-f90c-4559-a4d1-5f90e846f3ed" name="Changes" comment="6">
+      <change afterPath="$PROJECT_DIR$/templates/login.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/manage_users.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/register.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/adm.py" beforeDir="false" afterPath="$PROJECT_DIR$/adm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/survey_results.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/survey_results.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot_buttons.db" beforeDir="false" afterPath="$PROJECT_DIR$/bot_buttons.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cbd.py" beforeDir="false" afterPath="$PROJECT_DIR$/cbd.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/add_button.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/add_button.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/edit_button.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/edit_button.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +82,7 @@
       <method v="2" />
     </configuration>
     <configuration name="cbd" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="vkbotsk" />
+      <module name="vkbot" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -126,8 +133,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.adm" />
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.cbd" />
+        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>
@@ -195,7 +202,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734010756376</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="6">
+      <option name="closed" value="true" />
+      <created>1734011603353</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1734011603353</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -214,10 +229,18 @@
     <MESSAGE value="первый подход" />
     <MESSAGE value="4" />
     <MESSAGE value="5" />
-    <option name="LAST_COMMIT_MESSAGE" value="5" />
+    <MESSAGE value="6" />
+    <option name="LAST_COMMIT_MESSAGE" value="6" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/adm.py</url>
+          <line>77</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">

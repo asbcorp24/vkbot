@@ -1,21 +1,20 @@
-from flask import Flask, request, render_template, redirect, url_for, send_from_directory
+from flask import Flask, request, render_template, redirect, url_for, session, flash
 import sqlite3
-import json
 import os
-from math import ceil
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 
-# Конфигурация
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
-DB_FILE = "bot_buttons.db"
+# Загрузка переменных окружения
+load_dotenv()
+SUPERADMIN_USERNAME = os.getenv("SUPERADMIN_USERNAME", "superadmin")
+SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "superpassword")
 
+# Конфигурация приложения
 app = Flask(__name__)
+app.secret_key = "your_secret_key"  # Замените на свой секретный ключ
+UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Проверка разрешённого расширения файла
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+DB_FILE = "bot_buttons.db"
 
 # Работа с базой данных
 def execute_query(query, args=(), fetchone=False, commit=False):
@@ -31,12 +30,85 @@ def execute_query(query, args=(), fetchone=False, commit=False):
 # Главная страница
 @app.route("/")
 def index():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
     buttons = execute_query("SELECT id, question, response, parent_id, request_type, dop, media_url FROM buttons")
     return render_template("index.html", buttons=buttons)
+
+# Регистрация пользователя (только для суперадмина)
+@app.route("/manage_users", methods=["GET", "POST"])
+def manage_users():
+    if session.get("username") != SUPERADMIN_USERNAME:
+        flash("Доступ запрещён.", "danger")
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        try:
+            execute_query(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                (username, password),
+                commit=True
+            )
+            flash("Пользователь успешно добавлен.", "success")
+        except sqlite3.IntegrityError:
+            flash("Пользователь с таким логином уже существует.", "danger")
+
+    users = execute_query("SELECT id, username FROM users")
+    return render_template("manage_users.html", users=users)
+
+# Удаление пользователя (только для суперадмина)
+@app.route("/delete_user/<int:user_id>", methods=["POST"])
+def delete_user(user_id):
+    if session.get("username") != SUPERADMIN_USERNAME:
+        flash("Доступ запрещён.", "danger")
+        return redirect(url_for("index"))
+
+    execute_query("DELETE FROM users WHERE id = ?", (user_id,), commit=True)
+    flash("Пользователь успешно удалён.", "success")
+    return redirect(url_for("manage_users"))
+
+# Авторизация пользователя
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if username == SUPERADMIN_USERNAME and password == SUPERADMIN_PASSWORD:
+            session["user_id"] = -1  # Уникальный ID для суперадмина
+            session["username"] = SUPERADMIN_USERNAME
+            flash("Вы вошли как суперадмин!", "success")
+            return redirect(url_for("index"))
+
+        user = execute_query("SELECT * FROM users WHERE username = ?", (username,), fetchone=True)
+
+        if user and user[2] == password:  # Прямая проверка пароля
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+            flash("Вы успешно вошли в систему!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Неверный логин или пароль.", "danger")
+
+    return render_template("login.html")
+
+# Выход из системы
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Вы вышли из системы.", "info")
+    return redirect(url_for("login"))
 
 # Добавление новой кнопки
 @app.route("/add", methods=["GET", "POST"])
 def add_button():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
     if request.method == "POST":
         question = request.form["question"]
         response = request.form["response"]
@@ -45,10 +117,9 @@ def add_button():
         dop = request.form["dop"] if request.form["dop"] else None
         media_url = None
 
-        # Обработка файла
         if 'file' in request.files:
             file = request.files['file']
-            if file and allowed_file(file.filename):
+            if file:
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(file_path)
@@ -72,103 +143,15 @@ def add_button():
 def get_uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Редактирование кнопки
-@app.route("/edit/<int:button_id>", methods=["GET", "POST"])
-def edit_button(button_id):
-    if request.method == "POST":
-        question = request.form["question"]
-        response = request.form["response"]
-        parent_id = int(request.form["parent_id"])
-        request_type = int(request.form["request_type"])
-        dop = request.form["dop"] if request.form["dop"] else None
-        media_url = request.form["media_url"]
-
-        # Обработка нового файла
-        if 'file' in request.files:
-            file = request.files['file']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
-                media_url = f"/uploads/{filename}"
-
-        execute_query(
-            '''
-            UPDATE buttons
-            SET question = ?, response = ?, parent_id = ?, request_type = ?, dop = ?, media_url = ?
-            WHERE id = ?
-            ''',
-            (question, response, parent_id, request_type, dop, media_url, button_id),
-            commit=True
-        )
-        return redirect(url_for("index"))
-
-    button = execute_query("SELECT * FROM buttons WHERE id = ?", (button_id,), fetchone=True)
-    return render_template("edit_button.html", button=button)
-
 # Удаление кнопки
 @app.route("/delete/<int:button_id>")
 def delete_button(button_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
     execute_query("DELETE FROM buttons WHERE id = ?", (button_id,), commit=True)
     return redirect(url_for("index"))
 
-# Просмотр результатов анкет
-@app.route("/results", methods=["GET"])
-def survey_results():
-    survey_names = [row[0] for row in execute_query("SELECT DISTINCT survey_name FROM survey_results")]
-    survey_name = request.args.get("survey_name", "").strip()
-    start_date = request.args.get("start_date", "").strip()
-    end_date = request.args.get("end_date", "").strip()
-    page = int(request.args.get("page", 1))
-    per_page = 10  # Количество записей на страницу
-
-    query = "SELECT id, user_id, answers, survey_name, created_at, file_url FROM survey_results WHERE 1=1"
-    params = []
-
-    if survey_name:
-        query += " AND survey_name = ?"
-        params.append(survey_name)
-    if start_date:
-        query += " AND created_at >= ?"
-        params.append(start_date)
-    if end_date:
-        query += " AND created_at <= ?"
-        params.append(end_date)
-
-    # Выполнение основного запроса для подсчёта всех записей
-    total_results = len(execute_query(query, params))
-    total_pages = ceil(total_results / per_page)
-
-    # Добавление LIMIT и OFFSET для пагинации
-    query += " LIMIT ? OFFSET ?"
-    params.extend([per_page, (page - 1) * per_page])
-
-    raw_results = execute_query(query, params)
-
-    results = []
-    for row in raw_results:
-        try:
-            answers = json.loads(row[2]) if row[2] else []
-        except json.JSONDecodeError:
-            answers = []
-        parsed_answers = [{"question": a.get("question", "Неизвестный вопрос"), "answer": a.get("answer", "")} for a in answers]
-        results.append((row[0], row[1], parsed_answers, row[3], row[4], row[5]))
-
-    return render_template(
-        "survey_results.html",
-        results=results,
-        survey_names=survey_names,
-        current_page=page,
-        total_pages=total_pages
-    )
-
-# Удаление результата анкеты
-@app.route("/delete_result/<int:result_id>", methods=["POST"])
-def delete_result(result_id):
-    execute_query("DELETE FROM survey_results WHERE id = ?", (result_id,), commit=True)
-    return redirect(url_for("survey_results"))
-
-# Запуск приложения
 if __name__ == "__main__":
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)

@@ -1,4 +1,24 @@
 import sqlite3
+def create_users_table():
+    conn = sqlite3.connect("bot_buttons.db")
+    cursor = conn.cursor()
+
+    # Таблица пользователей
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,   -- Логин пользователя
+            password TEXT NOT NULL          -- Пароль (в зашифрованном виде)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+    print("Таблица users успешно создана!")
+
+
+
+
 
 def create_database():
     conn = sqlite3.connect("bot_buttons.db")
@@ -61,7 +81,38 @@ def seed_database():
     conn.commit()
     conn.close()
     print("Демо-данные успешно добавлены!")
+def create_users_table():
+    conn = sqlite3.connect("bot_buttons.db")
+    cursor = conn.cursor()
+
+    # Таблица пользователей
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,   -- Логин пользователя
+            password TEXT NOT NULL          -- Пароль (в зашифрованном виде)
+        )
+    ''')
+
+    # Добавление демо-данных
+    demo_users = [
+        ("admin", "admin123"),  # Логин: admin, Пароль: admin123
+        ("user", "user123")  # Логин: user, Пароль: user123
+    ]
+
+    try:
+        cursor.executemany("INSERT INTO users (username, password) VALUES (?, ?)", demo_users)
+    except sqlite3.IntegrityError:
+        print("Демо-данные уже существуют.")
+
+    conn.commit()
+    conn.close()
+    print("Таблица users успешно создана и заполнена демо-данными!")
+
+
+
 
 if __name__ == "__main__":
-    create_database()
-    seed_database()
+  create_database()
+  seed_database()
+  create_users_table()
